@@ -1658,10 +1658,16 @@ void VOlapScanNode::eval_const_conjuncts(VExpr* vexpr, VExprContext* expr_ctx, b
                          << "] should return a const column but actually is "
                          << vexpr->get_const_col(expr_ctx)->column_ptr->get_name();
             DCHECK_EQ(bool_column->size(), 1);
-            constant_val = const_cast<char*>(bool_column->get_data_at(0).data);
-            if (constant_val == nullptr || *reinterpret_cast<bool*>(constant_val) == false) {
-                *push_down = true;
-                _eos = true;
+            if (bool_column->size() == 1) {
+                constant_val = const_cast<char*>(bool_column->get_data_at(0).data);
+                if (constant_val == nullptr || *reinterpret_cast<bool*>(constant_val) == false) {
+                    *push_down = true;
+                    _eos = true;
+                }
+            } else {
+                LOG(WARNING) << "Constant predicate in scan node should return a bool column with "
+                                "`size == 1` but actually is "
+                             << bool_column->size();
             }
         } else {
             LOG(WARNING) << "Expr[" << vexpr->debug_string()
@@ -1702,13 +1708,15 @@ VExpr* VOlapScanNode::_normalize_predicate(RuntimeState* state, VExpr* conjunct_
         if (is_leaf(conjunct_expr_root)) {
             auto impl = conjunct_expr_root->get_impl();
             VExpr* cur_expr = impl ? const_cast<VExpr*>(impl) : conjunct_expr_root;
-            SlotDescriptor* slot;
+            SlotDescriptor* slot = nullptr;
             ColumnValueRangeType* range = nullptr;
             bool push_down = false;
             eval_const_conjuncts(cur_expr, *(_vconjunct_ctx_ptr.get()), &push_down);
-            if (!push_down &&
-                (_is_predicate_acting_on_slot(cur_expr, in_predicate_checker, &slot, &range) ||
-                 _is_predicate_acting_on_slot(cur_expr, eq_predicate_checker, &slot, &range))) {
+            if (push_down) {
+                return nullptr;
+            }
+            if (_is_predicate_acting_on_slot(cur_expr, in_predicate_checker, &slot, &range) ||
+                _is_predicate_acting_on_slot(cur_expr, eq_predicate_checker, &slot, &range)) {
                 std::visit(
                         [&](auto& value_range) {
                             RETURN_IF_PUSH_DOWN(_normalize_in_and_eq_predicate(
