@@ -148,7 +148,7 @@ public class ConnectContext {
 
     private long userQueryTimeout;
 
-    public void setUserQueryTimeoutMap(long queryTimeout) {
+    public void setUserQueryTimeout(long queryTimeout) {
         this.userQueryTimeout = queryTimeout;
     }
 
