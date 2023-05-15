@@ -93,7 +93,7 @@ public abstract class JniScanner {
         vectorTable.releaseColumn(fieldId);
     }
 
-    protected void releaseTable() {
+    public void releaseTable() {
         if (vectorTable != null) {
             vectorTable.close();
         }

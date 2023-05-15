@@ -355,6 +355,7 @@ set(VEC_FILES
   exec/scan/jni_reader.cpp
   exec/scan/paimon_reader.cpp
   exec/scan/max_compute_jni_reader.cpp
+  exec/scan/avro_reader.cpp
   )
 
 if (WITH_MYSQL)
