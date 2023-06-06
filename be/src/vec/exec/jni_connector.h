@@ -254,7 +254,6 @@ private:
     jmethodID _jni_scanner_get_next_batch;
     jmethodID _jni_scanner_get_table_schema;
     jmethodID _jni_scanner_close;
-    jmethodID _jni_scanner_release_table_schema;
     jmethodID _jni_scanner_release_column;
     jmethodID _jni_scanner_release_table;
 

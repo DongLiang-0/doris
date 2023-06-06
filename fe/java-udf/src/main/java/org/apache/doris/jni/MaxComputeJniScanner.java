@@ -20,6 +20,7 @@ package org.apache.doris.jni;
 import org.apache.doris.jni.vec.ColumnType;
 import org.apache.doris.jni.vec.MaxComputeColumnValue;
 import org.apache.doris.jni.vec.ScanPredicate;
+import org.apache.doris.jni.vec.TableSchema;
 
 import com.aliyun.odps.Column;
 import com.aliyun.odps.Odps;
@@ -228,6 +229,12 @@ public class MaxComputeJniScanner extends JniScanner {
         }
         remainBatchRows -= realRows;
         return realRows;
+    }
+
+    @Override
+    public TableSchema parseTableSchema() throws IOException {
+        // do nothing
+        return null;
     }
 
     private int readVectors(int expectedRows) throws IOException {

@@ -65,7 +65,6 @@ public class JniScannerTest {
 
         String tableSchema = scanner.getTableSchema();
         System.out.println(tableSchema);
-        scanner.releaseTableSchema();
         scanner.close();
     }
 }

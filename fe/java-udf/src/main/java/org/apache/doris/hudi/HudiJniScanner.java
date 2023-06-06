@@ -19,6 +19,7 @@ package org.apache.doris.hudi;
 
 import org.apache.doris.jni.JniScanner;
 import org.apache.doris.jni.vec.ColumnValue;
+import org.apache.doris.jni.vec.TableSchema;
 
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.serde2.Deserializer;
@@ -117,6 +118,12 @@ public class HudiJniScanner extends JniScanner {
             close();
             throw new IOException("Failed to get the next batch of hudi.", e);
         }
+    }
+
+    @Override
+    public TableSchema parseTableSchema() throws IOException {
+        // do nothing
+        return null;
     }
 
 

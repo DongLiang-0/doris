@@ -63,14 +63,17 @@ JniConnector::~JniConnector() {
 }
 
 Status JniConnector::open() {
-    RETURN_IF_ERROR(JniUtil::GetJNIEnv(&_env));
-    if (_env == nullptr) {
+    // cannot put the env into fields, because frames in an env object is limited
+    // to avoid limited frames in a thread, we should get local env in a method instead of in whole object.
+    JNIEnv* env = nullptr;
+    RETURN_IF_ERROR(JniUtil::GetJNIEnv(&env));
+    if (env == nullptr) {
         return Status::InternalError("Failed to get/create JVM");
     }
-    RETURN_IF_ERROR(_init_jni_scanner(_env));
+    RETURN_IF_ERROR(_init_jni_scanner(env));
     // Call org.apache.doris.jni.JniScanner#open
-    _env->CallVoidMethod(_jni_scanner_obj, _jni_scanner_open);
-    RETURN_ERROR_IF_EXC(_env);
+    env->CallVoidMethod(_jni_scanner_obj, _jni_scanner_open);
+    RETURN_ERROR_IF_EXC(env);
     return Status::OK();
 }
 
@@ -131,13 +134,14 @@ Status JniConnector::get_nex_block(Block* block, size_t* read_rows, bool* eof) {
 }
 
 Status JniConnector::get_table_schema(std::string& table_schema_str) {
-    JniLocalFrame jni_frame;
-    RETURN_IF_ERROR(jni_frame.push(_env));
-
+    JNIEnv* env = nullptr;
+    RETURN_IF_ERROR(JniUtil::GetJNIEnv(&env));
     // Call org.apache.doris.jni.JniScanner#getTableSchema
-    // return the address of TableSchema information
-    jstring jstr = (jstring)_env->CallObjectMethod(_jni_scanner_obj, _jni_scanner_get_table_schema);
-    table_schema_str = _env->GetStringUTFChars(jstr, nullptr);
+    // return the TableSchema information
+    jstring jstr = (jstring)env->CallObjectMethod(_jni_scanner_obj, _jni_scanner_get_table_schema);
+    RETURN_ERROR_IF_EXC(env);
+    table_schema_str = env->GetStringUTFChars(jstr, nullptr);
+    RETURN_ERROR_IF_EXC(env);
     return Status::OK();
 }
 
@@ -145,19 +149,14 @@ Status JniConnector::close() {
     if (!_closed) {
         JNIEnv* env = nullptr;
         RETURN_IF_ERROR(JniUtil::GetJNIEnv(&env));
-        if (_is_table_schema) {
-                    // _fill_block may be failed and returned, we should release table schema in close.
-                    // org.apache.doris.jni.JniScanner#releaseTableSchema is idempotent
-                    _env->CallVoidMethod(_jni_scanner_obj, _jni_scanner_release_table_schema);
-                    _env->CallVoidMethod(_jni_scanner_obj, _jni_scanner_close);
-                } else {
-                    // _fill_block may be failed and returned, we should release table in close.
-                    // org.apache.doris.jni.JniScanner#releaseTable is idempotent
-                    _env->CallVoidMethod(_jni_scanner_obj, _jni_scanner_release_table);
-                    _env->CallVoidMethod(_jni_scanner_obj, _jni_scanner_close);
+        if (!_is_table_schema) {
+            // _fill_block may be failed and returned, we should release table in close.
+            // org.apache.doris.jni.JniScanner#releaseTable is idempotent
+            env->CallVoidMethod(_jni_scanner_obj, _jni_scanner_release_table);
+            env->CallVoidMethod(_jni_scanner_obj, _jni_scanner_close);
         }
-        _env->DeleteLocalRef(_jni_scanner_obj);
-        _env->DeleteLocalRef(_jni_scanner_cls);
+        env->DeleteGlobalRef(_jni_scanner_obj);
+        env->DeleteGlobalRef(_jni_scanner_cls);
         _closed = true;
         jthrowable exc = (env)->ExceptionOccurred();
         if (exc != nullptr) {
@@ -230,9 +229,6 @@ Status JniConnector::_init_jni_scanner(JNIEnv* env) {
             env->GetMethodID(_jni_scanner_cls, "getTableSchema", "()Ljava/lang/String;");
     RETURN_ERROR_IF_EXC(env);
     _jni_scanner_close = env->GetMethodID(_jni_scanner_cls, "close", "()V");
-    RETURN_ERROR_IF_EXC(env);
-    _jni_scanner_release_table_schema =
-            env->GetMethodID(_jni_scanner_cls, "releaseTableSchema", "()V");
     RETURN_ERROR_IF_EXC(env);
     return Status::OK();
 }

@@ -20,7 +20,7 @@ package org.apache.doris.avro;
 import org.apache.doris.jni.JniScanner;
 import org.apache.doris.jni.vec.ColumnType;
 import org.apache.doris.jni.vec.ScanPredicate;
-import org.apache.doris.jni.vec.VectorTableSchema;
+import org.apache.doris.jni.vec.TableSchema;
 import org.apache.doris.thrift.TFileType;
 import org.apache.doris.thrift.TPrimitiveType;
 
@@ -136,7 +136,7 @@ public class AvroScanner extends JniScanner {
         return numRows;
     }
 
-    public VectorTableSchema parseTableSchema() throws IOException {
+    public TableSchema parseTableSchema() throws IOException {
         Schema schema = avroReader.getSchema();
         List<Field> schemaFields = schema.getFields();
         TPrimitiveType[] schemaTypes = new TPrimitiveType[schemaFields.size()];
@@ -170,7 +170,7 @@ public class AvroScanner extends JniScanner {
 
             }
         }
-        return new VectorTableSchema(fields, schemaTypes);
+        return new TableSchema(fields, schemaTypes);
     }
 
 }

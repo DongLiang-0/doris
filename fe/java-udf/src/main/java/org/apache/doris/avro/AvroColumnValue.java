@@ -21,6 +21,7 @@ import org.apache.doris.jni.vec.ColumnType;
 import org.apache.doris.jni.vec.ColumnValue;
 
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
@@ -108,6 +109,11 @@ public class AvroColumnValue implements ColumnValue {
     }
 
     @Override
+    public boolean isNull() {
+        return false;
+    }
+
+    @Override
     public boolean getBoolean() {
         return (boolean) inspectObject();
     }
@@ -140,6 +146,11 @@ public class AvroColumnValue implements ColumnValue {
     @Override
     public double getDouble() {
         return (double) inspectObject();
+    }
+
+    @Override
+    public BigInteger getBigInteger() {
+        return null;
     }
 
     @Override

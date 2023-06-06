@@ -20,14 +20,13 @@ package org.apache.doris.jni;
 import org.apache.doris.jni.vec.ColumnType;
 import org.apache.doris.jni.vec.ColumnValue;
 import org.apache.doris.jni.vec.ScanPredicate;
+import org.apache.doris.jni.vec.TableSchema;
 import org.apache.doris.jni.vec.VectorTable;
-import org.apache.doris.jni.vec.VectorTableSchema;
 
 import java.io.IOException;
 
 public abstract class JniScanner {
     protected VectorTable vectorTable;
-    protected VectorTableSchema tableSchema;
     protected String[] fields;
     protected ColumnType[] types;
     protected ScanPredicate[] predicates;
@@ -43,7 +42,7 @@ public abstract class JniScanner {
     protected abstract int getNext() throws IOException;
 
     // parse table schema
-    public abstract VectorTableSchema parseTableSchema() throws IOException;
+    public abstract TableSchema parseTableSchema() throws IOException;
 
     protected void initTableInfo(ColumnType[] requiredTypes, String[] requiredFields, ScanPredicate[] predicates,
             int batchSize) {
@@ -66,12 +65,8 @@ public abstract class JniScanner {
     }
 
     public String getTableSchema() throws IOException {
-        tableSchema = parseTableSchema();
-        return tableSchema.getString(0);
-    }
-
-    public void releaseTableSchema() {
-        tableSchema.close();
+        TableSchema tableSchema = parseTableSchema();
+        return tableSchema.getTableSchema();
     }
 
     public long getNextBatchMeta() throws IOException {
