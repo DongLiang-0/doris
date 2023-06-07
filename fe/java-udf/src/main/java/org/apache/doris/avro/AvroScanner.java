@@ -102,7 +102,7 @@ public class AvroScanner extends JniScanner {
                 break;
             default:
                 LOG.warn("Unsupported " + fileType.name() + " file type.");
-                throw new RuntimeException("Unsupported " + fileType.name() + " file type.");
+                throw new IOException("Unsupported " + fileType.name() + " file type.");
         }
         this.avroReader.open(new Configuration());
         if (!isGetTableSchema) {

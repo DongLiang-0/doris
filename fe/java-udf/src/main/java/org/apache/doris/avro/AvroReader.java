@@ -24,7 +24,7 @@ import java.io.IOException;
 
 public interface AvroReader {
 
-    void open(Configuration conf);
+    void open(Configuration conf) throws IOException;
 
     Schema getSchema();
 

@@ -58,19 +58,14 @@ public class S3FileReader implements AvroReader {
     }
 
     @Override
-    public void open(Configuration conf) {
+    public void open(Configuration conf) throws IOException {
         s3Client = AmazonS3ClientBuilder.standard()
                 .withCredentials(new AWSStaticCredentialsProvider(credentials))
                 .withEndpointConfiguration(new AwsClientBuilder.EndpointConfiguration(endpoint, region))
                 .build();
         S3Object object = s3Client.getObject(new GetObjectRequest(bucketName, key));
         s3ObjectInputStream = object.getObjectContent();
-        try {
-            reader = new DataFileStream<>(s3ObjectInputStream, new GenericDatumReader<>());
-        } catch (IOException e) {
-            LOG.warn("open s3FileReader meet some error" + e);
-            throw new RuntimeException("Failed initialize s3FileReader", e);
-        }
+        reader = new DataFileStream<>(s3ObjectInputStream, new GenericDatumReader<>());
     }
 
     @Override

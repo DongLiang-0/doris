@@ -44,15 +44,10 @@ public class HDFSFileReader implements AvroReader {
     }
 
     @Override
-    public void open(Configuration conf) {
-        try {
-            FileSystem fs = FileSystem.get(URI.create(url), conf);
-            inputStream = new BufferedInputStream(fs.open(filePath));
-            reader = new DataFileStream<>(inputStream, new GenericDatumReader<>());
-        } catch (IOException e) {
-            LOG.warn("Open HDFSFileReader meet some error" + e);
-            throw new RuntimeException("Failed to initialize HDFSFileReader", e);
-        }
+    public void open(Configuration conf) throws IOException {
+        FileSystem fs = FileSystem.get(URI.create(url), conf);
+        inputStream = new BufferedInputStream(fs.open(filePath));
+        reader = new DataFileStream<>(inputStream, new GenericDatumReader<>());
     }
 
     @Override
