@@ -17,10 +17,10 @@
 
 package org.apache.doris.avro;
 
-import org.apache.doris.jni.JniScanner;
-import org.apache.doris.jni.vec.ColumnType;
-import org.apache.doris.jni.vec.ScanPredicate;
-import org.apache.doris.jni.vec.TableSchema;
+import org.apache.doris.common.jni.JniScanner;
+import org.apache.doris.common.jni.vec.ColumnType;
+import org.apache.doris.common.jni.vec.ScanPredicate;
+import org.apache.doris.common.jni.vec.TableSchema;
 import org.apache.doris.thrift.TFileType;
 import org.apache.doris.thrift.TPrimitiveType;
 

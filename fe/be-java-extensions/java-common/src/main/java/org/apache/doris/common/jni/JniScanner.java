@@ -21,6 +21,7 @@ package org.apache.doris.common.jni;
 import org.apache.doris.common.jni.vec.ColumnType;
 import org.apache.doris.common.jni.vec.ColumnValue;
 import org.apache.doris.common.jni.vec.ScanPredicate;
+import org.apache.doris.common.jni.vec.TableSchema;
 import org.apache.doris.common.jni.vec.VectorTable;
 
 import java.io.IOException;
@@ -92,7 +93,7 @@ public abstract class JniScanner {
         return vectorTable.getMetaAddress();
     }
 
-    protected void resetTable() {
+    public void resetTable() {
         if (vectorTable != null) {
             vectorTable.reset();
         }

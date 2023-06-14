@@ -15,7 +15,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package org.apache.doris.jni.vec;
+package org.apache.doris.common.jni.vec;
 
 import org.apache.doris.thrift.TPrimitiveType;
 

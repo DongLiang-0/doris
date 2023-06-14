@@ -20,6 +20,7 @@ package org.apache.doris.hudi;
 
 import org.apache.doris.common.jni.JniScanner;
 import org.apache.doris.common.jni.vec.ColumnValue;
+import org.apache.doris.common.jni.vec.TableSchema;
 
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.serde2.Deserializer;
@@ -137,7 +138,6 @@ public class HudiJniScanner extends JniScanner {
         // do nothing
         return null;
     }
-
 
     private void init(JobConf jobConf, Properties properties) throws Exception {
         String basePath = hudiScanParam.getBasePath();

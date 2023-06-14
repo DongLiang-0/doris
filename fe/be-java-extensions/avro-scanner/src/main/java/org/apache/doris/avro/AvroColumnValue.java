@@ -17,8 +17,8 @@
 
 package org.apache.doris.avro;
 
-import org.apache.doris.jni.vec.ColumnType;
-import org.apache.doris.jni.vec.ColumnValue;
+import org.apache.doris.common.jni.vec.ColumnType;
+import org.apache.doris.common.jni.vec.ColumnValue;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
