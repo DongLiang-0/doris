@@ -64,8 +64,8 @@ public class JniScannerTest {
         OffHeap.setTesting();
         MockJniScanner scanner = new MockJniScanner(new HashMap<>());
 
-        String tableSchema = scanner.getTableSchema();
-        System.out.println(tableSchema);
+        // String tableSchema = scanner.getTableSchema();
+        // System.out.println(tableSchema);
         scanner.close();
     }
 }

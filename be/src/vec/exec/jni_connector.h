@@ -36,6 +36,8 @@
 #include "vec/aggregate_functions/aggregate_function.h"
 #include "vec/common/string_ref.h"
 #include "vec/data_types/data_type.h"
+#include "vec/columns/column_array.h"
+#include "vec/columns/column_map.h"
 
 namespace doris {
 class RuntimeProfile;
@@ -304,6 +306,22 @@ private:
         memcpy(column_data.data() + origin_size, ptr, sizeof(DecimalPrimitiveType) * num_rows);
         return Status::OK();
     }
+//
+//    template<typename CppType>
+//    Status _fill_array_column(MutableColumnPtr& doris_column,CppType* ptr,
+//                              size_t num_rows) {
+//        auto& column_data = static_cast<ColumnVector<CppType>&>(*doris_column).get_data();
+//        size_t  origin_size = column_data.size();
+//        column_data.resize(origin_size + num_rows);
+//        memcpy(column_data.data() + origin_size, ptr, sizeof(ColumnArray) * num_rows);
+//
+//
+//    }
+//
+//    template <typename CppType>
+//    static long _get_array_address(MutableColumnPtr& doris_column){
+//        return (long)static_cast<ColumnVector<CppType&>>(*doris_column).get_data().data();
+//    }
 
     template <typename DecimalPrimitiveType>
     static long _get_decimal_data_address(MutableColumnPtr& doris_column) {
@@ -327,6 +345,10 @@ private:
     }
 
     Status _fill_string_column(MutableColumnPtr& doris_column, size_t num_rows);
+
+    Status _fill_map_column(MutableColumnPtr& doris_column,DataTypePtr& data_type, size_t num_rows);
+
+    Status _fill_array_column(MutableColumnPtr& doris_column,DataTypePtr& data_type, size_t num_rows);
 
     void _generate_predicates(
             std::unordered_map<std::string, ColumnValueRangeType>* colname_to_value_range);

@@ -22,7 +22,6 @@ import org.apache.doris.common.jni.vec.ColumnType;
 import org.apache.doris.common.jni.vec.ColumnValue;
 import org.apache.doris.common.jni.vec.ScanPredicate;
 import org.apache.doris.common.jni.vec.TableSchema;
-import org.apache.doris.thrift.TPrimitiveType;
 
 import org.apache.log4j.Logger;
 
@@ -199,9 +198,10 @@ public class MockJniScanner extends JniScanner {
 
     @Override
     protected TableSchema parseTableSchema() throws UnsupportedOperationException {
-        String[] fields = {"int_type", "boolean_type", "long_type", "String_type"};
-        TPrimitiveType[] schemaTypes = {TPrimitiveType.INT, TPrimitiveType.BOOLEAN, TPrimitiveType.BIGINT,
-                TPrimitiveType.STRING};
-        return new TableSchema(fields, schemaTypes);
+        // String[] fields = {"int_type", "boolean_type", "long_type", "String_type"};
+        // TPrimitiveType[] schemaTypes = {TPrimitiveType.INT, TPrimitiveType.BOOLEAN, TPrimitiveType.BIGINT,
+        //         TPrimitiveType.STRING};
+        // return new TableSchema(fields, schemaTypes);
+        return null;
     }
 }

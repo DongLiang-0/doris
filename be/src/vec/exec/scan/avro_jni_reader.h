@@ -24,6 +24,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
+#include <rapidjson/document.h>
 
 #include "common/status.h"
 #include "exec/olap_common.h"
@@ -77,6 +78,10 @@ public:
 
     Status get_parsed_schema(std::vector<std::string>* col_names,
                              std::vector<TypeDescriptor>* col_types) override;
+
+    TypeDescriptor convert_to_doris_type(const rapidjson::Value& column_schema);
+
+    TypeDescriptor convert_complex_type(const rapidjson::Document::ConstObject child_schema);
 
 private:
     const std::vector<SlotDescriptor*>& _file_slot_descs;

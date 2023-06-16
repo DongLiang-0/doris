@@ -34,6 +34,11 @@
 #include "vec/core/column_with_type_and_name.h"
 #include "vec/core/types.h"
 #include "vec/data_types/data_type_nullable.h"
+#include "vec/data_types/data_type_factory.hpp"
+#include "vec/data_types/data_type_array.h"
+#include "vec/data_types/data_type_map.h"
+#include "vec/data_types/data_type_nullable.h"
+#include "vec/data_types/data_type_struct.h"
 
 namespace doris {
 class RuntimeProfile;
@@ -261,10 +266,66 @@ Status JniConnector::_fill_column(ColumnPtr& doris_column, DataTypePtr& data_typ
     case TypeIndex::String:
         [[fallthrough]];
     case TypeIndex::FixedString:
-        return _fill_string_column(data_column, num_rows);
+        return _fill_string_column(data_column,num_rows);
+    case TypeIndex::Map:
+        return _fill_map_column(data_column,data_type, num_rows);
+    case TypeIndex::Array:
+        return _fill_array_column(data_column, data_type,num_rows);
     default:
         return Status::InvalidArgument("Unsupported type {} in jni scanner",
                                        getTypeName(logical_type));
+    }
+    return Status::OK();
+}
+
+Status JniConnector::_fill_array_column(MutableColumnPtr& doris_column,DataTypePtr& data_type, size_t num_rows) {
+//    DCHECK(args.slot_type.is_array_type());
+
+    auto& array_column = down_cast<ColumnArray&>(*doris_column);
+    int* offset_ptr = static_cast<int*>(_next_meta_as_ptr());
+    size_t origin_size = 0;
+    array_column.resize(origin_size + num_rows);
+//    auto* offsets = array_column.get_offsets().data();
+    memcpy(array_column.get_offsets().data() + origin_size, offset_ptr, (num_rows + 1) * sizeof(uint32_t));
+
+//    int total_length = offset_ptr[num_rows];
+    ColumnPtr& elements = array_column.get_data_ptr();
+    DataTypePtr& nested_type = const_cast<DataTypePtr&>(
+            reinterpret_cast<const DataTypeArray*>(remove_nullable(data_type).get())->get_nested_type());
+//    DataTypePtr child_type =  DataTypeFactory::instance().create_data_type(array_column.get_data_type());
+
+//    Column* elements = array_column.elements_column().get();
+//    std::string name = args.slot_name + ".$0";
+//    FillColumnArgs sub_args = {.num_rows = total_length,
+//            .slot_name = name,
+//            .slot_type = args.slot_type.children[0],
+//            .nulls = nullptr,
+//            .column = elements,
+//            .must_nullable = false};
+
+    RETURN_IF_ERROR(_fill_column(elements,nested_type,3));
+    return Status::OK();
+}
+
+Status JniConnector::_fill_map_column(MutableColumnPtr& doris_column,DataTypePtr& data_type,size_t num_rows) {
+    auto& map_column = down_cast<ColumnMap&>(*doris_column);
+    int* offset_ptr = static_cast<int*>(_next_meta_as_ptr());
+    size_t  origin_size = map_column.size();
+    map_column.resize(origin_size+ num_rows);
+    memcpy(map_column.get_offsets().data() + origin_size, offset_ptr, (num_rows + 1) * sizeof(uint32_t));
+
+//    int total_length = 0;
+    {
+        ColumnPtr& key_column = map_column.get_keys_ptr();
+        DataTypePtr& key_type = const_cast<DataTypePtr&>(
+                reinterpret_cast<const DataTypeMap*>(remove_nullable(data_type).get())->get_key_type());
+        RETURN_IF_ERROR(_fill_column(key_column, key_type, 1));
+    }
+    {
+        ColumnPtr& value_column = map_column.get_values_ptr();
+        DataTypePtr& value_type = const_cast<DataTypePtr&>(
+                reinterpret_cast<const DataTypeMap*>(remove_nullable(data_type).get())->get_value_type());
+        RETURN_IF_ERROR(_fill_column(value_column, value_type,  1));
     }
     return Status::OK();
 }
@@ -443,6 +504,7 @@ Status JniConnector::generate_meta_info(Block* block, std::unique_ptr<long[]>& m
         }
         case TypeIndex::Array:
             [[fallthrough]];
+//            meta_data.emplace_back(_get_array_address<Int64>(data_column));
         case TypeIndex::Struct:
             [[fallthrough]];
         case TypeIndex::Map:

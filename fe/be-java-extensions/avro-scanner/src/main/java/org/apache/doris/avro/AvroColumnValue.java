@@ -20,6 +20,11 @@ package org.apache.doris.avro;
 import org.apache.doris.common.jni.vec.ColumnType;
 import org.apache.doris.common.jni.vec.ColumnValue;
 
+import org.apache.hadoop.hive.serde2.objectinspector.ListObjectInspector;
+import org.apache.hadoop.hive.serde2.objectinspector.MapObjectInspector;
+import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
+import org.apache.hadoop.hive.serde2.objectinspector.PrimitiveObjectInspector;
+
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
@@ -27,17 +32,26 @@ import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 public class AvroColumnValue implements ColumnValue {
 
     private byte[] valueBytes;
-    private final ColumnType columnType;
+    private  ColumnType columnType;
     private ByteBuffer byteBuffer;
 
-    public AvroColumnValue(Object value, ColumnType columnType) {
-        this.columnType = columnType;
-        convert2Bytes(value);
+    private final Object fieldData;
+    private final ObjectInspector fieldInspector;
+
+    public AvroColumnValue(ObjectInspector fieldInspector, Object fieldData) {
+        this.fieldInspector = fieldInspector;
+        this.fieldData = fieldData;
     }
+
+    // public AvroColumnValue(Object value, ColumnType columnType) {
+    //     this.columnType = columnType;
+    //     convert2Bytes(value);
+    // }
 
     public void convert2Bytes(Object value) {
         switch (columnType.getType()) {
@@ -81,32 +95,36 @@ public class AvroColumnValue implements ColumnValue {
     }
 
     private Object inspectObject() {
-        byteBuffer.flip();
-        switch (columnType.getType()) {
-            case BOOLEAN:
-                return byteBuffer.get() == 1;
-            case TINYINT:
-                return byteBuffer.get();
-            case SMALLINT:
-                return byteBuffer.getShort();
-            case INT:
-                return byteBuffer.getInt();
-            case BIGINT:
-                return byteBuffer.getLong();
-            case FLOAT:
-                return byteBuffer.getFloat();
-            case DOUBLE:
-                return byteBuffer.getDouble();
-            case CHAR:
-            case VARCHAR:
-            case STRING:
-                return new String(valueBytes, StandardCharsets.UTF_8);
-            case BINARY:
-                return valueBytes;
-            default:
-                return new Object();
-        }
+        return ((PrimitiveObjectInspector) fieldInspector).getPrimitiveJavaObject(fieldData);
     }
+
+    // private Object inspectObject() {
+    //     byteBuffer.flip();
+    //     switch (columnType.getType()) {
+    //         case BOOLEAN:
+    //             return byteBuffer.get() == 1;
+    //         case TINYINT:
+    //             return byteBuffer.get();
+    //         case SMALLINT:
+    //             return byteBuffer.getShort();
+    //         case INT:
+    //             return byteBuffer.getInt();
+    //         case BIGINT:
+    //             return byteBuffer.getLong();
+    //         case FLOAT:
+    //             return byteBuffer.getFloat();
+    //         case DOUBLE:
+    //             return byteBuffer.getDouble();
+    //         case CHAR:
+    //         case VARCHAR:
+    //         case STRING:
+    //             return new String(valueBytes, StandardCharsets.UTF_8);
+    //         case BINARY:
+    //             return valueBytes;
+    //         default:
+    //             return new Object();
+    //     }
+    // }
 
     @Override
     public boolean isNull() {
@@ -182,12 +200,35 @@ public class AvroColumnValue implements ColumnValue {
 
     @Override
     public void unpackArray(List<ColumnValue> values) {
-
+        ListObjectInspector inspector = (ListObjectInspector) fieldInspector;
+        List<?> items = inspector.getList(fieldData);
+        ObjectInspector itemInspector = inspector.getListElementObjectInspector();
+        for (Object item : items) {
+            AvroColumnValue avroColumnValue = null;
+            if (item != null) {
+                avroColumnValue = new AvroColumnValue(itemInspector, item);
+            }
+            values.add(avroColumnValue);
+        }
     }
 
     @Override
     public void unpackMap(List<ColumnValue> keys, List<ColumnValue> values) {
-
+        MapObjectInspector inspector = (MapObjectInspector) fieldInspector;
+        ObjectInspector keyObjectInspector = inspector.getMapKeyObjectInspector();
+        ObjectInspector valueObjectInspector = inspector.getMapValueObjectInspector();
+        for (Map.Entry kv : inspector.getMap(fieldData).entrySet()) {
+            AvroColumnValue avroKey = null;
+            AvroColumnValue avroValue = null;
+            if (kv.getKey() != null) {
+                avroKey = new AvroColumnValue(keyObjectInspector, kv.getKey());
+            }
+            if (kv.getValue() != null) {
+                avroValue = new AvroColumnValue(valueObjectInspector, kv.getValue());
+            }
+            keys.add(avroKey);
+            values.add(avroValue);
+        }
     }
 
     @Override

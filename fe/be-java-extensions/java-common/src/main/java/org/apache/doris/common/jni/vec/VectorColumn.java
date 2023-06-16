@@ -27,6 +27,7 @@ import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -113,8 +114,15 @@ public class VectorColumn {
         this.appendIndex = numRows;
 
         if (columnType.isComplexType()) {
-            // todo: support complex type
-            throw new RuntimeException("Unhandled type: " + columnType);
+            List<ColumnType> children = columnType.getChildTypes();
+            this.offsets = OffHeap.getLong(null, address);
+            this.childColumns = new VectorColumn[children.size()];
+            List<ColumnType> childTypes = columnType.getChildTypes();
+            for (int i = 0; i < children.size(); i++) {
+                address += 8;
+                ColumnType childColumnType = childTypes.get(i);
+                childColumns[i] = new VectorColumn(childColumnType,numRows,address);
+            }
         } else if (columnType.isStringType()) {
             this.offsets = OffHeap.getLong(null, address);
             address += 8;
@@ -210,15 +218,22 @@ public class VectorColumn {
             this.data = OffHeap.reallocateMemory(data, oldCapacity * typeSize, newCapacity * typeSize);
         } else if (columnType.isStringType()) {
             this.offsets = OffHeap.reallocateMemory(offsets, oldOffsetSize, newOffsetSize);
+        } else if (columnType.isArray() || columnType.isMap() || columnType.isStruct()) {
+            this.offsets = OffHeap.reallocateMemory(offsets, oldOffsetSize, newOffsetSize);
         } else {
             throw new RuntimeException("Unhandled type: " + columnType);
         }
-        // todo: support complex type
         if (!"#stringBytes".equals(columnType.getName())) {
             this.nullMap = OffHeap.reallocateMemory(nullMap, oldCapacity, newCapacity);
             OffHeap.setMemory(nullMap + oldCapacity, (byte) 0, newCapacity - oldCapacity);
         }
         capacity = newCapacity;
+
+        if (this.offsets != 0) {
+            // offsetData[0] == 0 always.
+            // we have to set it explicitly otherwise it's undefined value here.
+            OffHeap.putInt(null, offsets, 0);
+        }
     }
 
     public void reset() {
@@ -357,6 +372,10 @@ public class VectorColumn {
         return OffHeap.getInt(null, data + 4L * rowId);
     }
 
+    private int getArrayOffset(int rowId) {
+        return OffHeap.getInt(null, offsets + 4L * rowId);
+    }
+
     public int appendFloat(float v) {
         reserve(appendIndex + 1);
         putFloat(appendIndex, v);
@@ -464,6 +483,45 @@ public class VectorColumn {
     public int appendDateTime(LocalDateTime v) {
         reserve(appendIndex + 1);
         putDateTime(appendIndex, v);
+        return appendIndex++;
+    }
+
+    private void putArrayOffset(int rowId, int offset, int length) {
+        OffHeap.putInt(null, offsets + 4L * rowId, offset);
+        OffHeap.putInt(null, offsets + 4L * (rowId + 1), offset + length);
+    }
+
+    private int appendArray(List<ColumnValue> values) {
+        int size = values.size();
+        int offset = childColumns[0].appendIndex;
+        for (ColumnValue v : values) {
+            childColumns[0].appendValue(v);
+        }
+        reserve(appendIndex + 1);
+        putArrayOffset(appendIndex, offset, size);
+        return appendIndex++;
+    }
+
+    private int appendMap(List<ColumnValue> keys, List<ColumnValue> values) {
+        int size = keys.size();
+        int offset = childColumns[0].appendIndex;
+        int idx = 0;
+            for (ColumnValue k : keys) {
+                childColumns[idx].appendValue(k);
+            }
+            idx += 1;
+            for (ColumnValue v : values) {
+                childColumns[idx].appendValue(v);
+            }
+        reserve(appendIndex + 1);
+        putArrayOffset(appendIndex, offset, size);
+        return appendIndex++;
+    }
+
+    private int appendStruct(List<ColumnValue> values) {
+        for (int i = 0; i < childColumns.length; i++) {
+            childColumns[i].appendValue(values.get(i));
+        }
         return appendIndex++;
     }
 
@@ -602,6 +660,25 @@ public class VectorColumn {
             case BINARY:
                 appendBytesAndOffset(o.getBytes());
                 break;
+            case ARRAY: {
+                List<ColumnValue> values = new ArrayList<>();
+                o.unpackArray(values);
+                appendArray(values);
+                break;
+            }
+            case MAP: {
+                List<ColumnValue> keys = new ArrayList<>();
+                List<ColumnValue> values = new ArrayList<>();
+                o.unpackMap(keys, values);
+                appendMap(keys, values);
+                break;
+            }
+            case STRUCT: {
+                List<ColumnValue> values = new ArrayList<>();
+                o.unpackStruct(columnType.getFieldIndex(), values);
+                appendStruct(values);
+                break;
+            }
             default:
                 throw new RuntimeException("Unknown type value: " + typeValue);
         }
@@ -658,6 +735,60 @@ public class VectorColumn {
             case BINARY:
                 sb.append(getStringWithOffset(i));
                 break;
+            case ARRAY: {
+                int begin = getArrayOffset(i);
+                int end = getArrayOffset(i + 1);
+                sb.append("[");
+                for (int rowId = begin; rowId < end; rowId++) {
+                    if (rowId != begin) {
+                        sb.append(',');
+                    }
+                    childColumns[0].dump(sb, rowId);
+                }
+                sb.append("]");
+                break;
+            }
+            case MAP: {
+                int begin = getArrayOffset(i);
+                int end = getArrayOffset(i + 1);
+                sb.append("[");
+                // VectorColumn key = columnType.getChildTypes().get(0);
+                VectorColumn key = childColumns[0];
+                VectorColumn value = childColumns[1];
+                for (int rowId = begin; rowId < end; rowId++) {
+                    if (rowId != begin) {
+                        sb.append(",");
+                    }
+                    sb.append("{");
+                    if (key != null) {
+                        key.dump(sb, rowId);
+                    } else {
+                        sb.append("null");
+                    }
+                    sb.append(":");
+                    if (value != null) {
+                        value.dump(sb, rowId);
+                    } else {
+                        sb.append("null");
+                    }
+                    sb.append("}");
+                }
+                sb.append("]");
+                break;
+            }
+            case STRUCT: {
+                List<String> names = columnType.getChildNames();
+                sb.append("{");
+                for (int c = 0; c < names.size(); c++) {
+                    if (c != 0) {
+                        sb.append(",");
+                    }
+                    sb.append(names.get(c)).append(":");
+                    childColumns[c].dump(sb, i);
+                }
+                sb.append("}");
+                break;
+            }
             default:
                 throw new RuntimeException("Unknown type value: " + typeValue);
         }

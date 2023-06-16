@@ -65,6 +65,11 @@ public abstract class JniScanner {
         return vectorTable;
     }
 
+    // public TableSchema getTableSchema() throws IOException {
+    //     TableSchema tableSchema = parseTableSchema();
+    //     return tableSchema.getTableSchema();
+    // }
+
     public String getTableSchema() throws IOException {
         TableSchema tableSchema = parseTableSchema();
         return tableSchema.getTableSchema();
