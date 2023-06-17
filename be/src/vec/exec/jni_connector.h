@@ -181,14 +181,6 @@ public:
 
     /**
      * Open java scanner, and get the following scanner methods by jni:
-     * 1. getTableSchema: read table scheme information
-     * 2. releaseTableSchema: release current table schema address
-     * 3. close: close java scanner, and release jni resources
-     */
-    Status open();
-
-    /**
-     * Open java scanner, and get the following scanner methods by jni:
      * 1. getNextBatchMeta: read next batch and return the address of meta information
      * 2. close: close java scanner, and release jni resources
      * 3. releaseColumn: release a single column
@@ -263,9 +255,6 @@ private:
     int _predicates_length = 0;
     std::unique_ptr<char[]> _predicates = nullptr;
 
-    jmethodID _scanner_constructor;
-    jobject _hashmap_object;
-
     /**
      * Set the address of meta information, which is returned by org.apache.doris.common.jni.JniScanner#getNextBatchMeta
      */
@@ -285,10 +274,6 @@ private:
     void* _next_meta_as_ptr() { return reinterpret_cast<void*>(_meta_ptr[_meta_index++]); }
 
     Status _init_jni_scanner(JNIEnv* env, int batch_size);
-
-    Status _init_scanner_params(JNIEnv* env);
-
-    Status _init_jni_scanner(JNIEnv* env);
 
     Status _fill_block(Block* block, size_t num_rows);
 

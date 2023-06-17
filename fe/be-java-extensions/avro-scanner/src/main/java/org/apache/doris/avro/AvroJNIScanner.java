@@ -35,13 +35,13 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
-public class AvroScanner extends JniScanner {
+public class AvroJNIScanner extends JniScanner {
 
-    private static final Logger LOG = LogManager.getLogger(AvroScanner.class);
+    private static final Logger LOG = LogManager.getLogger(AvroJNIScanner.class);
     private final TFileType fileType;
     private final String uri;
     private final Map<String, String> requiredParams;
-    private Integer fetchSize;
+    private final Integer fetchSize;
     private String[] columnTypes;
     private String[] requiredFields;
     private ColumnType[] requiredTypes;
@@ -49,33 +49,25 @@ public class AvroScanner extends JniScanner {
     private boolean isGetTableSchema = false;
 
     /**
-     * Call by JNI for get table data
+     * Call by JNI for get table data or get table schema
      *
      * @param fetchSize The size of data fetched each time
      * @param requiredParams required params
      */
-    public AvroScanner(int fetchSize, Map<String, String> requiredParams) {
+    public AvroJNIScanner(int fetchSize, Map<String, String> requiredParams) {
+        this.requiredParams = requiredParams;
         this.fetchSize = fetchSize;
-        this.requiredParams = requiredParams;
-        this.columnTypes = requiredParams.get(AvroProperties.COLUMNS_TYPES)
-                .split(AvroProperties.COLUMNS_TYPE_DELIMITER);
-        this.requiredFields = requiredParams.get(AvroProperties.REQUIRED_FIELDS).split(AvroProperties.FIELDS_DELIMITER);
+        this.isGetTableSchema = Boolean.parseBoolean(requiredParams.get(AvroProperties.IS_GET_TABLE_SCHEMA));
         this.fileType = TFileType.findByValue(Integer.parseInt(requiredParams.get(AvroProperties.FILE_TYPE)));
         this.uri = requiredParams.get(AvroProperties.URI);
-        this.requiredTypes = new ColumnType[requiredFields.length];
-        buildParams();
-    }
-
-    /**
-     * Call by JNI for get table Schema
-     *
-     * @param requiredParams required params
-     */
-    public AvroScanner(Map<String, String> requiredParams) {
-        this.requiredParams = requiredParams;
-        this.uri = requiredParams.get(AvroProperties.URI);
-        this.fileType = TFileType.findByValue(Integer.parseInt(requiredParams.get(AvroProperties.FILE_TYPE)));
-        isGetTableSchema = true;
+        if (!isGetTableSchema) {
+            this.columnTypes = requiredParams.get(AvroProperties.COLUMNS_TYPES)
+                    .split(AvroProperties.COLUMNS_TYPE_DELIMITER);
+            this.requiredFields = requiredParams.get(AvroProperties.REQUIRED_FIELDS)
+                    .split(AvroProperties.FIELDS_DELIMITER);
+            this.requiredTypes = new ColumnType[requiredFields.length];
+            buildParams();
+        }
     }
 
     private void buildParams() {
@@ -136,7 +128,7 @@ public class AvroScanner extends JniScanner {
         return numRows;
     }
 
-    public TableSchema parseTableSchema() throws IOException {
+    public TableSchema parseTableSchema() throws UnsupportedOperationException {
         Schema schema = avroReader.getSchema();
         List<Field> schemaFields = schema.getFields();
         TPrimitiveType[] schemaTypes = new TPrimitiveType[schemaFields.size()];
@@ -166,7 +158,7 @@ public class AvroScanner extends JniScanner {
                 case ARRAY:
                 case MAP:
                 default:
-                    throw new IOException("avro format: " + type.getName() + " is not supported.");
+                    throw new UnsupportedOperationException("avro format: " + type.getName() + " is not supported.");
 
             }
         }

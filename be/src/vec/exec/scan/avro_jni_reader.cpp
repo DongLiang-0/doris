@@ -15,7 +15,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-#include "avro_reader.h"
+#include "avro_jni_reader.h"
 
 #include <map>
 #include <ostream>
@@ -25,18 +25,18 @@
 
 namespace doris::vectorized {
 
-AvroReader::AvroReader(RuntimeState* state, RuntimeProfile* profile,
-                       const TFileScanRangeParams& params,
-                       const std::vector<SlotDescriptor*>& file_slot_descs)
+AvroJNIReader::AvroJNIReader(RuntimeState* state, RuntimeProfile* profile,
+                             const TFileScanRangeParams& params,
+                             const std::vector<SlotDescriptor*>& file_slot_descs)
         : _file_slot_descs(file_slot_descs), _state(state), _profile(profile), _params(params) {}
 
-AvroReader::AvroReader(const TFileScanRangeParams& params, const TFileRangeDesc& range,
-                       const std::vector<SlotDescriptor*>& file_slot_descs)
+AvroJNIReader::AvroJNIReader(const TFileScanRangeParams& params, const TFileRangeDesc& range,
+                             const std::vector<SlotDescriptor*>& file_slot_descs)
         : _file_slot_descs(file_slot_descs), _params(params), _range(range) {}
 
-AvroReader::~AvroReader() = default;
+AvroJNIReader::~AvroJNIReader() = default;
 
-Status AvroReader::get_next_block(Block* block, size_t* read_rows, bool* eof) {
+Status AvroJNIReader::get_next_block(Block* block, size_t* read_rows, bool* eof) {
     RETURN_IF_ERROR(_jni_connector->get_nex_block(block, read_rows, eof));
     if (*eof) {
         RETURN_IF_ERROR(_jni_connector->close());
@@ -44,15 +44,15 @@ Status AvroReader::get_next_block(Block* block, size_t* read_rows, bool* eof) {
     return Status::OK();
 }
 
-Status AvroReader::get_columns(std::unordered_map<std::string, TypeDescriptor>* name_to_type,
-                               std::unordered_set<std::string>* missing_cols) {
+Status AvroJNIReader::get_columns(std::unordered_map<std::string, TypeDescriptor>* name_to_type,
+                                  std::unordered_set<std::string>* missing_cols) {
     for (auto& desc : _file_slot_descs) {
         name_to_type->emplace(desc->col_name(), desc->type());
     }
     return Status::OK();
 }
 
-Status AvroReader::init_fetch_table_reader(
+Status AvroJNIReader::init_fetch_table_reader(
         std::unordered_map<std::string, ColumnValueRangeType>* colname_to_value_range) {
     _colname_to_value_range = colname_to_value_range;
     std::ostringstream required_fields;
@@ -76,7 +76,8 @@ Status AvroReader::init_fetch_table_reader(
     TFileType::type type = _params.file_type;
     std::map<String, String> required_param = {{"required_fields", required_fields.str()},
                                                {"columns_types", columns_types.str()},
-                                               {"file_type", std::to_string(type)}};
+                                               {"file_type", std::to_string(type)},
+                                               {"is_get_table_schema", "false"}};
     switch (type) {
     case TFileType::FILE_HDFS:
         required_param.insert(std::make_pair("uri", _params.hdfs_params.hdfs_conf.data()->value));
@@ -88,24 +89,25 @@ Status AvroReader::init_fetch_table_reader(
         Status::InternalError("unsupported file reader type: {}", std::to_string(type));
     }
     required_param.insert(_params.properties.begin(), _params.properties.end());
-    _jni_connector = std::make_unique<JniConnector>("org/apache/doris/avro/AvroScanner",
+    _jni_connector = std::make_unique<JniConnector>("org/apache/doris/avro/AvroJNIScanner",
                                                     required_param, column_names);
     RETURN_IF_ERROR(_jni_connector->init(_colname_to_value_range));
     return _jni_connector->open(_state, _profile);
 }
 
-Status AvroReader::init_fetch_table_schema_reader() {
+Status AvroJNIReader::init_fetch_table_schema_reader() {
     std::map<String, String> required_param = {{"uri", _range.path},
-                                               {"file_type", std::to_string(_params.file_type)}};
+                                               {"file_type", std::to_string(_params.file_type)},
+                                               {"is_get_table_schema", "true"}};
 
     required_param.insert(_params.properties.begin(), _params.properties.end());
     _jni_connector =
-            std::make_unique<JniConnector>("org/apache/doris/avro/AvroScanner", required_param);
-    return _jni_connector->open();
+            std::make_unique<JniConnector>("org/apache/doris/avro/AvroJNIScanner", required_param);
+    return _jni_connector->open(nullptr, nullptr);
 }
 
-Status AvroReader::get_parsed_schema(std::vector<std::string>* col_names,
-                                     std::vector<TypeDescriptor>* col_types) {
+Status AvroJNIReader::get_parsed_schema(std::vector<std::string>* col_names,
+                                        std::vector<TypeDescriptor>* col_types) {
     std::string table_schema_str;
     RETURN_IF_ERROR(_jni_connector->get_table_schema(table_schema_str));
 

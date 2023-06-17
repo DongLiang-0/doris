@@ -47,23 +47,23 @@ namespace doris::vectorized {
 /**
  * Read avro-format file
  */
-class AvroReader : public GenericReader {
-    ENABLE_FACTORY_CREATOR(AvroReader);
+class AvroJNIReader : public GenericReader {
+    ENABLE_FACTORY_CREATOR(AvroJNIReader);
 
 public:
     /**
      * Call java side by jni to get table data.
      */
-    AvroReader(RuntimeState* state, RuntimeProfile* profile, const TFileScanRangeParams& params,
-               const std::vector<SlotDescriptor*>& file_slot_descs);
+    AvroJNIReader(RuntimeState* state, RuntimeProfile* profile, const TFileScanRangeParams& params,
+                  const std::vector<SlotDescriptor*>& file_slot_descs);
 
     /**
      * Call java side by jni to get table schema.
      */
-    AvroReader(const TFileScanRangeParams& params, const TFileRangeDesc& range,
-               const std::vector<SlotDescriptor*>& file_slot_descs);
+    AvroJNIReader(const TFileScanRangeParams& params, const TFileRangeDesc& range,
+                  const std::vector<SlotDescriptor*>& file_slot_descs);
 
-    ~AvroReader() override;
+    ~AvroJNIReader() override;
 
     Status get_next_block(Block* block, size_t* read_rows, bool* eof) override;
 

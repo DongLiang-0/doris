@@ -112,7 +112,7 @@
 #include "vec/exec/format/json/new_json_reader.h"
 #include "vec/exec/format/orc/vorc_reader.h"
 #include "vec/exec/format/parquet/vparquet_reader.h"
-#include "vec/exec/scan/avro_reader.h"
+#include "vec/exec/scan/avro_jni_reader.h"
 #include "vec/jsonb/serialize.h"
 #include "vec/runtime/vdata_stream_mgr.h"
 
@@ -589,8 +589,8 @@ void PInternalServiceImpl::fetch_table_schema(google::protobuf::RpcController* c
         case TFileFormatType::FORMAT_AVRO: {
             // file_slots is no use
             std::vector<SlotDescriptor*> file_slots;
-            reader = vectorized::AvroReader::create_unique(params, range, file_slots);
-            ((vectorized::AvroReader*)(reader.get()))->init_fetch_table_schema_reader();
+            reader = vectorized::AvroJNIReader::create_unique(params, range, file_slots);
+            ((vectorized::AvroJNIReader*)(reader.get()))->init_fetch_table_schema_reader();
             break;
         }
         default:

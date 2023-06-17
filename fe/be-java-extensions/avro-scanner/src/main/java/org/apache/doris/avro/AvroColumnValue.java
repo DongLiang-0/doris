@@ -165,12 +165,14 @@ public class AvroColumnValue implements ColumnValue {
 
     @Override
     public LocalDate getDate() {
-        return LocalDate.now();
+        // avro has no date type
+        return null;
     }
 
     @Override
     public LocalDateTime getDateTime() {
-        return LocalDateTime.now();
+        // avro has no dateTime type
+        return null;
     }
 
     @Override

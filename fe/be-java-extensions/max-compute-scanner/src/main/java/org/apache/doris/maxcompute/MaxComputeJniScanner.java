@@ -232,7 +232,7 @@ public class MaxComputeJniScanner extends JniScanner {
     }
 
     @Override
-    public TableSchema parseTableSchema() throws IOException {
+    public TableSchema parseTableSchema() throws UnsupportedOperationException {
         // do nothing
         return null;
     }

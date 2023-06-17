@@ -22,6 +22,7 @@ public class AvroProperties {
     protected static final String COLUMNS_TYPE_DELIMITER = "#";
     protected static final String FIELDS_DELIMITER = ",";
 
+    protected static final String IS_GET_TABLE_SCHEMA = "is_get_table_schema";
     protected static final String COLUMNS_TYPES = "columns_types";
     protected static final String REQUIRED_FIELDS = "required_fields";
     protected static final String FILE_TYPE = "file_type";
