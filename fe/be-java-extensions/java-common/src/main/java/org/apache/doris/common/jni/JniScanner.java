@@ -43,7 +43,7 @@ public abstract class JniScanner {
     protected abstract int getNext() throws IOException;
 
     // parse table schema
-    public abstract TableSchema parseTableSchema() throws UnsupportedOperationException;
+    protected abstract TableSchema parseTableSchema() throws UnsupportedOperationException;
 
     protected void initTableInfo(ColumnType[] requiredTypes, String[] requiredFields, ScanPredicate[] predicates,
             int batchSize) {

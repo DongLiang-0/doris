@@ -128,7 +128,7 @@ public class AvroJNIScanner extends JniScanner {
         return numRows;
     }
 
-    public TableSchema parseTableSchema() throws UnsupportedOperationException {
+    protected TableSchema parseTableSchema() throws UnsupportedOperationException {
         Schema schema = avroReader.getSchema();
         List<Field> schemaFields = schema.getFields();
         TPrimitiveType[] schemaTypes = new TPrimitiveType[schemaFields.size()];

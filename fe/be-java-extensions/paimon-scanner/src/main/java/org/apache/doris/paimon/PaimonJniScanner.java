@@ -142,7 +142,7 @@ public class PaimonJniScanner extends JniScanner {
     }
 
     @Override
-    public TableSchema parseTableSchema() throws UnsupportedOperationException {
+    protected TableSchema parseTableSchema() throws UnsupportedOperationException {
         // do nothing
         return null;
     }

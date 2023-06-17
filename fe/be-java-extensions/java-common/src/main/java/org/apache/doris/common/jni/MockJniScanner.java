@@ -198,7 +198,7 @@ public class MockJniScanner extends JniScanner {
     }
 
     @Override
-    public TableSchema parseTableSchema() throws UnsupportedOperationException {
+    protected TableSchema parseTableSchema() throws UnsupportedOperationException {
         String[] fields = {"int_type", "boolean_type", "long_type", "String_type"};
         TPrimitiveType[] schemaTypes = {TPrimitiveType.INT, TPrimitiveType.BOOLEAN, TPrimitiveType.BIGINT,
                 TPrimitiveType.STRING};
