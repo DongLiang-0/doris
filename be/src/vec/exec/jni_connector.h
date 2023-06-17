@@ -166,10 +166,10 @@ public:
               _column_names(std::move(column_names)) {}
 
     /**
-    * Use configuration map to provide scan information. The java side should determine how the parameters are parsed.
-    * @param connector_class Java scanner class
-    * @param scanner_params Provided configuration map
-    */
+     * Just use to get the table schema.
+     * @param connector_class Java scanner class
+     * @param scanner_params Provided configuration map
+     */
     JniConnector(std::string connector_class, std::map<std::string, std::string> scanner_params)
             : _connector_class(std::move(connector_class)),
               _scanner_params(std::move(scanner_params)) {
