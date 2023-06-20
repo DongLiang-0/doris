@@ -109,6 +109,11 @@ public class AvroColumnValue implements ColumnValue {
     }
 
     @Override
+    public boolean canGetStringAsBytes() {
+        return false;
+    }
+
+    @Override
     public boolean isNull() {
         return false;
     }
