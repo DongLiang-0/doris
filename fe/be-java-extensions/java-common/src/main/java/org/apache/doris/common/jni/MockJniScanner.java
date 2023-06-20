@@ -53,6 +53,11 @@ public class MockJniScanner extends JniScanner {
         }
 
         @Override
+        public boolean canGetStringAsBytes() {
+            return false;
+        }
+
+        @Override
         public boolean isNull() {
             return false;
         }
