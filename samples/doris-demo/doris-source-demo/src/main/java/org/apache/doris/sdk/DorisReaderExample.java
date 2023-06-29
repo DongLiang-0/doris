@@ -16,6 +16,15 @@
 // under the License.
 package org.apache.doris.sdk;
 
+import org.apache.doris.sdk.thrift.TDorisExternalService;
+import org.apache.doris.sdk.thrift.TScanBatchResult;
+import org.apache.doris.sdk.thrift.TScanCloseParams;
+import org.apache.doris.sdk.thrift.TScanColumnDesc;
+import org.apache.doris.sdk.thrift.TScanNextBatchParams;
+import org.apache.doris.sdk.thrift.TScanOpenParams;
+import org.apache.doris.sdk.thrift.TScanOpenResult;
+import org.apache.doris.sdk.thrift.TStatusCode;
+
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import org.apache.arrow.memory.RootAllocator;
@@ -35,14 +44,6 @@ import org.apache.arrow.vector.complex.ListVector;
 import org.apache.arrow.vector.ipc.ArrowStreamReader;
 import org.apache.arrow.vector.types.Types;
 import org.apache.commons.codec.binary.Base64;
-import org.apache.doris.sdk.thrift.TDorisExternalService;
-import org.apache.doris.sdk.thrift.TScanBatchResult;
-import org.apache.doris.sdk.thrift.TScanCloseParams;
-import org.apache.doris.sdk.thrift.TScanColumnDesc;
-import org.apache.doris.sdk.thrift.TScanNextBatchParams;
-import org.apache.doris.sdk.thrift.TScanOpenParams;
-import org.apache.doris.sdk.thrift.TScanOpenResult;
-import org.apache.doris.sdk.thrift.TStatusCode;
 import org.apache.http.HttpHeaders;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
@@ -57,6 +58,8 @@ import org.apache.thrift.transport.TSocket;
 import org.apache.thrift.transport.TTransport;
 
 import java.io.ByteArrayInputStream;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -69,9 +72,11 @@ public class DorisReaderExample {
     static String dorisUrl = "127.0.0.1:8030";
     static String user = "root";
     static String password = "";
-    static String database = "db1";
-    static String table = "tbl2";
-    static String sql = "select * from db1.tbl2";
+    static String database = "test";
+    // static String table = "test_sink";
+    // static String sql = "select * from test.test_sink";
+    static String table = "logs_default";
+    static String sql = "select `json.tags` from test.logs_default";
     static int readRowCount = 0;
     static List<List<Object>> result = new ArrayList<>();
 
@@ -141,7 +146,7 @@ public class DorisReaderExample {
             params.setUser(user);
             params.setPasswd(password);
 
-//            int offset =0;
+           // int offset =0;
             //open scanner
             TScanOpenResult tScanOpenResult = client.openScanner(params);
             if (!TStatusCode.OK.equals(tScanOpenResult.getStatus().getStatusCode())) {
@@ -176,14 +181,27 @@ public class DorisReaderExample {
             if ((transport != null) && transport.isOpen()) {
                 transport.close();
             }
-            //System.out.println(String.format("read tablet %s from backend %s finished", tabletId, routingsBackend));
+            System.out.println(String.format("read tablet %s from backend %s finished", tabletId, routingsBackend));
         }
     }
+
+    public static void getFile() throws FileNotFoundException {
+        FileInputStream fileInputStream = new FileInputStream(
+                "/Users/wdl/projects/doris/samples/doris-demo/doris-source-demo/batchResult.row");
+
+    }
+
+    // public static void main(String[] args) throws Exception {
+    //     convertArrow(null, null);
+    // }
 
     private static int convertArrow(TScanBatchResult nextResult, List<TScanColumnDesc> selectedColumns) throws Exception {
         int offset = 0;
         RootAllocator rootAllocator = new RootAllocator(Integer.MAX_VALUE);
+        FileInputStream fileInputStream = new FileInputStream(
+                "/Users/wdl/projects/doris/samples/doris-demo/doris-source-demo/batchResult.row");
         ArrowStreamReader arrowStreamReader = new ArrowStreamReader(new ByteArrayInputStream(nextResult.getRows()), rootAllocator);
+        // ArrowStreamReader arrowStreamReader = new ArrowStreamReader(nextResult.getRows(), rootAllocator);
 
         VectorSchemaRoot root = arrowStreamReader.getVectorSchemaRoot();
         while (arrowStreamReader.loadNextBatch()) {

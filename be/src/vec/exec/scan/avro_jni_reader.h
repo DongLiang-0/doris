@@ -25,6 +25,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
+#include <rapidjson/document.h>
 
 #include "common/status.h"
 #include "exec/olap_common.h"

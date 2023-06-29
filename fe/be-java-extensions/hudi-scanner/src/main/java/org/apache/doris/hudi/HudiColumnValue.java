@@ -22,7 +22,6 @@ import org.apache.doris.common.jni.vec.ColumnValue;
 
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.PrimitiveObjectInspector;
-import org.apache.hadoop.hive.serde2.objectinspector.primitive.DateObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.HiveDecimalObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.TimestampObjectInspector;
 import org.apache.hadoop.io.BytesWritable;
@@ -127,7 +126,7 @@ public class HudiColumnValue implements ColumnValue {
 
     @Override
     public LocalDate getDate() {
-        return ((DateObjectInspector) fieldInspector).getPrimitiveJavaObject(fieldData).toLocalDate();
+        return null;
     }
 
     @Override
@@ -145,7 +144,7 @@ public class HudiColumnValue implements ColumnValue {
             }
             return LocalDateTime.ofInstant(Instant.ofEpochSecond(seconds, nanoseconds), ZoneId.systemDefault());
         } else {
-            return ((TimestampObjectInspector) fieldInspector).getPrimitiveJavaObject(fieldData).toLocalDateTime();
+            return null;
         }
     }
 

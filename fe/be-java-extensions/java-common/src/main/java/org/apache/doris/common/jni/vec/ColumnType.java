@@ -33,6 +33,8 @@ public class ColumnType {
     public static final int MAX_DECIMAL32_PRECISION = 9;
     public static final int MAX_DECIMAL64_PRECISION = 18;
     public static final int MAX_DECIMAL128_PRECISION = 38;
+    // public static final String FIELD_0_NAME = FIELD_PREFIX + "0";
+    // public static final String FIELD_1_NAME = FIELD_PREFIX + "1";
 
     public enum Type {
         UNSUPPORTED(-1),
@@ -156,6 +158,14 @@ public class ColumnType {
     public boolean isMap() {
         return type == Type.MAP;
     }
+
+    // public boolean isMapKeySelected() {
+    //     return childNames.indexOf(FIELD_0_NAME) != -1;
+    // }
+    //
+    // public boolean isMapValueSelected() {
+    //     return childNames.indexOf(FIELD_1_NAME) != -1;
+    // }
 
     public boolean isStruct() {
         return type == Type.STRUCT;
