@@ -112,6 +112,11 @@ public class MockJniScanner extends JniScanner {
         }
 
         @Override
+        public byte[] getStringAsBytes() {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
         public LocalDate getDate() {
             return LocalDate.now();
         }
