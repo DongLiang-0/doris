@@ -49,10 +49,13 @@ public class TableSchema {
     public static class SchemaColumn {
         private String name;
         private int type;
+        private int precision;
+        private int scale;
         private SchemaColumn childColumn;
 
         public SchemaColumn() {
-
+            this.precision = -1;
+            this.scale = -1;
         }
 
         public String getName() {
@@ -73,6 +76,22 @@ public class TableSchema {
 
         public void setType(TPrimitiveType type) {
             this.type = type.getValue();
+        }
+
+        public int getPrecision() {
+            return precision;
+        }
+
+        public void setPrecision(int precision) {
+            this.precision = precision;
+        }
+
+        public int getScale() {
+            return scale;
+        }
+
+        public void setScale(int scale) {
+            this.scale = scale;
         }
 
         public void addChildColumn(SchemaColumn childColumn) {

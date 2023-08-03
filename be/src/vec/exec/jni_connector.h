@@ -38,6 +38,8 @@
 #include "vec/aggregate_functions/aggregate_function.h"
 #include "vec/common/string_ref.h"
 #include "vec/data_types/data_type.h"
+#include "vec/columns/column_array.h"
+#include "vec/columns/column_map.h"
 
 namespace doris {
 class RuntimeState;
@@ -346,6 +348,10 @@ private:
     }
 
     Status _fill_string_column(MutableColumnPtr& doris_column, size_t num_rows);
+
+    Status _fill_map_column(MutableColumnPtr& doris_column,DataTypePtr& data_type, size_t num_rows);
+
+    Status _fill_array_column(MutableColumnPtr& doris_column,DataTypePtr& data_type, size_t num_rows);
 
     void _generate_predicates(
             std::unordered_map<std::string, ColumnValueRangeType>* colname_to_value_range);

@@ -28,6 +28,7 @@ import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -58,6 +59,8 @@ public class VectorColumn {
 
     // For nested column type: String / Array/ Map / Struct
     private VectorColumn[] childColumns;
+    // For Map nested column
+    private long addressOffset;
 
     public VectorColumn(ColumnType columnType, int capacity) {
         this.columnType = columnType;
@@ -114,8 +117,17 @@ public class VectorColumn {
         this.appendIndex = numRows;
 
         if (columnType.isComplexType()) {
-            // todo: support complex type
-            throw new RuntimeException("Unhandled type: " + columnType);
+            List<ColumnType> children = columnType.getChildTypes();
+            this.offsets = OffHeap.getLong(null, address);
+            this.childColumns = new VectorColumn[children.size()];
+            List<ColumnType> childTypes = columnType.getChildTypes();
+            for (int i = 0; i < children.size(); i++) {
+                address += 8;
+                this.addressOffset = address;
+                VectorColumn vectorColumn = new VectorColumn(childTypes.get(i), numRows, address);
+                childColumns[i] = vectorColumn;
+                address = vectorColumn.getAddressOffset();
+            }
         } else if (columnType.isStringType()) {
             this.offsets = OffHeap.getLong(null, address);
             address += 8;
@@ -124,10 +136,16 @@ public class VectorColumn {
             childColumns = new VectorColumn[1];
             childColumns[0] = new VectorColumn(OffHeap.getLong(null, address), length,
                     new ColumnType("#stringBytes", Type.BYTE));
+            this.addressOffset = address;
         } else {
             this.data = OffHeap.getLong(null, address);
+            this.addressOffset = address;
             this.offsets = 0;
         }
+    }
+
+    private long getAddressOffset() {
+        return addressOffset;
     }
 
     public long nullMapAddress() {
@@ -211,15 +229,22 @@ public class VectorColumn {
             this.data = OffHeap.reallocateMemory(data, oldCapacity * typeSize, newCapacity * typeSize);
         } else if (columnType.isStringType()) {
             this.offsets = OffHeap.reallocateMemory(offsets, oldOffsetSize, newOffsetSize);
+        } else if (columnType.isArray() || columnType.isMap() || columnType.isStruct()) {
+            this.offsets = OffHeap.reallocateMemory(offsets, oldOffsetSize, newOffsetSize);
         } else {
             throw new RuntimeException("Unhandled type: " + columnType);
         }
-        // todo: support complex type
         if (!"#stringBytes".equals(columnType.getName())) {
             this.nullMap = OffHeap.reallocateMemory(nullMap, oldCapacity, newCapacity);
             OffHeap.setMemory(nullMap + oldCapacity, (byte) 0, newCapacity - oldCapacity);
         }
         capacity = newCapacity;
+
+        if (this.offsets != 0) {
+            // offsetData[0] == 0 always.
+            // we have to set it explicitly otherwise it's undefined value here.
+            OffHeap.putInt(null, offsets, 0);
+        }
     }
 
     public void reset() {
@@ -358,6 +383,10 @@ public class VectorColumn {
         return OffHeap.getInt(null, data + 4L * rowId);
     }
 
+    private int getArrayOffset(int rowId) {
+        return OffHeap.getInt(null, offsets + 4L * rowId);
+    }
+
     public int appendFloat(float v) {
         reserve(appendIndex + 1);
         putFloat(appendIndex, v);
@@ -468,6 +497,40 @@ public class VectorColumn {
         return appendIndex++;
     }
 
+    private void putArrayOffset(int rowId, int offset, int length) {
+        OffHeap.putInt(null, offsets + 4L * rowId, offset);
+        OffHeap.putInt(null, offsets + 4L * (rowId + 1), offset + length);
+    }
+
+    private int appendArray(List<ColumnValue> values) {
+        int size = values.size();
+        int offset = childColumns[0].appendIndex;
+        for (ColumnValue v : values) {
+            childColumns[0].appendValue(v);
+        }
+        reserve(appendIndex + 1);
+        // OffHeap.putInt(null, offsets + 4L * appendIndex, size + offset);
+        putArrayOffset(appendIndex, offset, size);
+        return appendIndex++;
+    }
+
+    private int appendMap(List<ColumnValue> keys, List<ColumnValue> values) {
+        int size = keys.size();
+        int offset = childColumns[0].appendIndex;
+        int index = 0;
+        for (ColumnValue k : keys) {
+            childColumns[index].appendValue(k);
+        }
+        index += 1;
+        for (ColumnValue v : values) {
+            childColumns[index].appendValue(v);
+        }
+        reserve(appendIndex + 1);
+        // OffHeap.putInt(null, offsets + 4L * appendIndex, size + offset);
+        putArrayOffset(appendIndex, offset, size);
+        return appendIndex++;
+    }
+
     public LocalDateTime getDateTime(int rowId) {
         long time = OffHeap.getLong(null, data + rowId * 8L);
         return TypeNativeBytes.convertToJavaDateTime(time);
@@ -515,18 +578,35 @@ public class VectorColumn {
 
     public int appendStringAndOffset(String str) {
         byte[] bytes = str.getBytes(StandardCharsets.UTF_8);
-        return appendBytesAndOffset(bytes, 0, bytes.length);
+        return appendByteArray(bytes, 0, str.length());
+        // return appendBytesAndOffset(bytes, 0, bytes.length);
     }
 
     public byte[] getBytesWithOffset(int rowId) {
         long endOffsetAddress = offsets + 4L * rowId;
-        int startOffset = rowId == 0 ? 0 : OffHeap.getInt(null, endOffsetAddress - 4);
+        int startOffset = rowId == 0 ? 0 : OffHeap.getInt(null, endOffsetAddress - 4); //  ?  -4
+        // int startOffset = OffHeap.getInt(null, endOffsetAddress - 4); //  ?  -4
         int endOffset = OffHeap.getInt(null, endOffsetAddress);
         return childColumns[0].getBytes(startOffset, endOffset - startOffset);
     }
 
+    private int appendByteArray(byte[] value, int offset, int length) {
+        int copiedOffset = childColumns[0].appendBytes(value, offset,length);
+        reserve(appendIndex + 1);
+        putArrayOffset(appendIndex, copiedOffset, length);
+        return appendIndex++;
+    }
+
     public String getStringWithOffset(int rowId) {
-        byte[] bytes = getBytesWithOffset(rowId);
+        // byte[] bytes = getBytesWithOffset(rowId);
+        // return new String(bytes, StandardCharsets.UTF_8);
+        if (isNullAt(rowId)) {
+            return null;
+        }
+        int start = getArrayOffset(rowId);
+        int end = getArrayOffset(rowId + 1);
+        int size = end - start;
+        byte[] bytes = childColumns[0].getBytes(start, size);
         return new String(bytes, StandardCharsets.UTF_8);
     }
 
@@ -639,6 +719,19 @@ public class VectorColumn {
             case BINARY:
                 appendBytesAndOffset(o.getBytes());
                 break;
+            case ARRAY: {
+                List<ColumnValue> values = new ArrayList<>();
+                o.unpackArray(values);
+                appendArray(values);
+                break;
+            }
+            case MAP: {
+                List<ColumnValue> keys = new ArrayList<>();
+                List<ColumnValue> values = new ArrayList<>();
+                o.unpackMap(keys, values);
+                appendMap(keys, values);
+                break;
+            }
             default:
                 throw new RuntimeException("Unknown type value: " + typeValue);
         }
@@ -695,6 +788,52 @@ public class VectorColumn {
             case BINARY:
                 sb.append(getStringWithOffset(i));
                 break;
+            case ARRAY: {
+                int begin = getArrayOffset(i);
+                int end = getArrayOffset(i + 1);
+                // long endOffsetAddress = offsets + 4L * i;
+                // int begin = i == 0 ? 0 : OffHeap.getInt(null, endOffsetAddress - 4);
+                // int end = OffHeap.getInt(null, endOffsetAddress);
+                sb.append("[");
+                for (int rowId = begin; rowId < end; rowId++) {
+                    if (rowId != begin) {
+                        sb.append(',');
+                    }
+                    childColumns[0].dump(sb, rowId);
+                }
+                sb.append("]");
+                break;
+            }
+            case MAP: {
+                int begin = getArrayOffset(i);
+                int end = getArrayOffset(i + 1);
+                // long endOffsetAddress = offsets + 4L * i;
+                // int begin = i == 0 ? 0 : OffHeap.getInt(null, endOffsetAddress - 4);
+                // int end = OffHeap.getInt(null, endOffsetAddress);
+                sb.append("[");
+                VectorColumn key = childColumns[0];
+                VectorColumn value = childColumns[1];
+                for (int rowId = begin; rowId < end; rowId++) {
+                    if (rowId != begin) {
+                        sb.append(",");
+                    }
+                    sb.append("{");
+                    if (key != null) {
+                        key.dump(sb, rowId);
+                    } else {
+                        sb.append("null");
+                    }
+                    sb.append(":");
+                    if (value != null) {
+                        value.dump(sb, rowId);
+                    } else {
+                        sb.append("null");
+                    }
+                    sb.append("}");
+                }
+                sb.append("]");
+                break;
+            }
             default:
                 throw new RuntimeException("Unknown type value: " + typeValue);
         }
