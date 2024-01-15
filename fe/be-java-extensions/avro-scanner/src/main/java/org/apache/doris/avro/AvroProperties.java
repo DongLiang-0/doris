@@ -58,5 +58,10 @@ public class AvroProperties {
     protected static final String KAFKA_AVRO_DESERIALIZER = "io.confluent.kafka.serializers.KafkaAvroDeserializer";
     protected static final String KAFKA_SCHEMA_REGISTRY_URL = "schema.registry.url";
     protected static final String KAFKA_AUTO_COMMIT_ENABLE = "auto.commit.enable";
+    protected static final String KAFKA_SECURITY_PROTOCOL = "security.protocol";
+    protected static final String KAFKA_SAS1_MECHANISM = "sas1.mechanism";
+    protected static final String KAFKA_SAS1_KERBEROS_SERVICE_NAME = "sas1.kerberos.service.name";
+    protected static final String KAFKA_SAS1_JAAS_CONFIG = "sas1.jaas.config";
+
 
 }

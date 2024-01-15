@@ -48,6 +48,16 @@ public class AvroJNIScannerTest {
         scanner.close();
     }
 
+    @Test
+    public void testGetSchema() throws IOException {
+        OffHeap.setTesting();
+        AvroJNIScanner scanner = new AvroJNIScanner(10, buildParamsKafkaSchema());
+        scanner.open();
+        String tableSchema = scanner.getTableSchema();
+        System.out.println(tableSchema);
+        scanner.close();
+    }
+
     private Map<String, String> buildParams() {
         Map<String, String> requiredParams = new HashMap<>();
         // https://zyk-gz-1316291683.cos.ap-guangzhou.myqcloud.com/path/all_complex.avro
@@ -126,6 +136,19 @@ public class AvroJNIScannerTest {
 
         requiredParams.put("columns_types", "varchar(65533)#boolean#string#string#string#map<string,bigint>#array<bigint>#double#bigint");
         requiredParams.put("required_fields", "name,boolean_type,favorite_number,favorite_color,enum_value,map_value,array_value,double_type,long_type");
+        requiredParams.put("hive.serde", "org.apache.hadoop.hive.serde2.avro.AvroSerDe");
+        return requiredParams;
+    }
+
+    private Map<String, String> buildParamsKafkaSchema() {
+        Map<String, String> requiredParams = new HashMap<>();
+        requiredParams.put("is_get_table_schema", "true");
+        requiredParams.put("file_type", "6");
+        requiredParams.put("topic", "avro-complex7");
+
+        requiredParams.put("broker_list", "10.16.10.6:9092");
+        requiredParams.put("group.id", "doris-consumer-group");
+        requiredParams.put("schema.registry.url", "http://10.16.10.6:8082");
         requiredParams.put("hive.serde", "org.apache.hadoop.hive.serde2.avro.AvroSerDe");
         return requiredParams;
     }

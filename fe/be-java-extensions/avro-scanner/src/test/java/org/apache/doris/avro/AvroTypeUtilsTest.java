@@ -37,17 +37,17 @@ public class AvroTypeUtilsTest {
     @Before
     public void setUp() {
         result = "[{\"name\":\"aBoolean\",\"type\":2,\"childColumns\":null},{\"name\":\"aInt\",\"type\":5,"
-                + "\"childColumns\":null},{\"name\":\"aLong\",\"type\":6,\"childColumns\":null},{\"name\":\""
-                + "aFloat\",\"type\":7,\"childColumns\":null},{\"name\":\"aDouble\",\"type\":8,\"childColumns\""
-                + ":null},{\"name\":\"aString\",\"type\":23,\"childColumns\":null},{\"name\":\"aBytes\",\"type\""
-                + ":11,\"childColumns\":null},{\"name\":\"aFixed\",\"type\":11,\"childColumns\":null},{\"name\""
-                + ":\"anArray\",\"type\":20,\"childColumns\":[{\"name\":null,\"type\":5,\"childColumns\":null}]}"
-                + ",{\"name\":\"aMap\",\"type\":21,\"childColumns\":[{\"name\":null,\"type\":23,\"childColumns\""
-                + ":null},{\"name\":null,\"type\":5,\"childColumns\":null}]},{\"name\":\"anEnum\",\"type\":23"
-                + ",\"childColumns\":null},{\"name\":\"aRecord\",\"type\":22,\"childColumns\":[{\"name\":\"a\","
-                + "\"type\":5,\"childColumns\":null},{\"name\":\"b\",\"type\":8,\"childColumns\":null},{\"name\":"
-                + "\"c\",\"type\":23,\"childColumns\":null}]},{\"name\":\"aUnion\",\"type\":22,\"childColumns\":"
-                + "[{\"name\":\"string\",\"type\":23,\"childColumns\":null}]}]\n";
+                + "\"childColumns\":null},{\"name\":\"aLong\",\"type\":6,\"childColumns\":null},{\"name\":"
+                + "\"aFloat\",\"type\":7,\"childColumns\":null},{\"name\":\"aDouble\",\"type\":8,\"childColumns\":null},"
+                + "{\"name\":\"aString\",\"type\":23,\"childColumns\":null},{\"name\":\"aBytes\",\"type\":11,"
+                + "\"childColumns\":null},{\"name\":\"aFixed\",\"type\":11,\"childColumns\":null},"
+                + "{\"name\":\"anArray\",\"type\":20,\"childColumns\":[{\"name\":null,\"type\":5,"
+                + "\"childColumns\":null}]},{\"name\":\"aMap\",\"type\":21,\"childColumns\":[{\"name\":null,\"type\":23,"
+                + "\"childColumns\":null},{\"name\":null,\"type\":5,\"childColumns\":null}]},{\"name\":\"anEnum\",\"type\""
+                + ":23,\"childColumns\":null},{\"name\":\"aRecord\",\"type\":22,\"childColumns\":[{\"name\":\""
+                + "a\",\"type\":5,\"childColumns\":null},{\"name\":\"b\",\"type\":8,\"childColumns\":null},"
+                + "{\"name\":\"c\",\"type\":23,\"childColumns\":null}]},"
+                + "{\"name\":\"aUnion\",\"type\":23,\"childColumns\":null}]\n";
 
         Schema simpleEnumSchema = SchemaBuilder.enumeration("myEnumType").symbols("A", "B", "C");
         Schema simpleRecordSchema = SchemaBuilder.record("simpleRecord")

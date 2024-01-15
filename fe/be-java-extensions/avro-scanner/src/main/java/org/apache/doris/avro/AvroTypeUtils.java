@@ -110,7 +110,7 @@ public class AvroTypeUtils {
                 List<SchemaColumn> childSchemaColumns = Lists.newArrayList();
                 for (int i = 0; i < nonNullableMembers.size(); i++) {
                     SchemaColumn childColumn = new SchemaColumn();
-                    childColumn.setName("dumb" + i);
+                    childColumn.setName("dummy-" + i);
                     childColumn.setType(typeFromAvro(nonNullableMembers.get(i), childColumn));
                     childSchemaColumns.add(childColumn);
                 }
